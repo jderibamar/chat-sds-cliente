@@ -10,7 +10,7 @@
       </header>      
         
        <div class="content-container">
-          <div class="active-users-panel" id="active-user-container">
+          <div class="active-users-panel" id="active-user-container" id="div-scroll">
             <h3 class="panel-title"> Usuários ativos :</h3>          
             
             <!-- @nomeu faz a conexão com a trigger criada para o efeito de animação -->
@@ -18,14 +18,15 @@
 
             <p *ngFor="let item of messageArray"> 
                 <span> <b> {{ item.user }}: </b>  {{ item.mensage }} </span>
-            </p>            
-                    
-              <div class="ui form" id="div-mensagem" >
-                <input type="text" placeholder="Sua mensagem aqui" id="txt-mensagem" [(ngModel)]="messageText"
-                 (keyup.enter)="sendMessage()" [disabled]="msgHabDes">
-                
-                <!-- <button id="bt-enviar" mat-raised-button color="primary" (click)="sendMessage()"> Enviar </button> -->
-              </div>                            
+            </p>                                
+                                        
+        </div> 
+
+        <div class="ui form" id="div-mensagem" >
+          <input type="text" placeholder="Sua mensagem aqui" id="txt-mensagem" [(ngModel)]="messageText"
+           (keyup.enter)="sendMessage()" [disabled]="msgHabDes" (keydown.enter)="scroll()">
+          
+          <!-- <button id="bt-enviar" mat-raised-button color="primary" (click)="sendMessage()"> Enviar </button> -->
         </div> 
 
           <div class="video-chat-container">

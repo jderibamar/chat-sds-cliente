@@ -1,5 +1,5 @@
 /// <reference types="@types/dom-mediacapture-record" />
-import { Component, OnInit, Input, Injectable } from '@angular/core'
+import { Component, OnInit, Input, Injectable, ViewChild, ElementRef } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { ChatService } from '../../../services/chat.service'
 import { CaptureAudioService } from 'src/app/services/capture-audio.service'
@@ -32,10 +32,10 @@ import { trigger, state, style } from '@angular/animations'
 })
 
 @Injectable()
-export class RoomComponent implements OnInit 
+export class RoomComponent implements OnInit
 {         
     socket: SocketIOClient.Socket
-    video: HTMLVideoElement
+    // video: HTMLVideoElement
     constraints = { audio: true, video: true }
     user: String
     room: String   
@@ -47,9 +47,13 @@ export class RoomComponent implements OnInit
     btEntHabDes = true
     verUpre = false //verificar se o campo do nome do usuário foi preenchido
     estado = 'visivel' //para alterar o estado do nome do usuário quando loga entre visível / invisível
+    msgDig = ''
 
     id: string;
     gainNode: GainNode
+
+    @ViewChild('divScrool') divScrool: ElementRef
+    
 
     // formulario: FormGroup = new FormGroup(
     //    {
@@ -76,11 +80,11 @@ export class RoomComponent implements OnInit
             console.log('Parâmetro funcionando nessa BAGAÇA: ', parametro.id )                
         }) 
 
-          this.video = document.querySelector('video');
+          const localVideo = document.getElementById ('local-video') as HTMLVideoElement
           navigator.mediaDevices.getUserMedia(this.constraints)
-          .then( stream => { this.video.srcObject = stream }, error => { console.error('Erro na requisição: ' + error) })          
+          .then( stream => { localVideo.srcObject = stream }, error => { console.error('Erro na requisição de áudio e vídeo: ' + error) })
     }
-
+  
     sendMessage()
     {            
         this.socket.emit('new message', { user: this.usuario, mensage: this.messageText })
@@ -100,6 +104,7 @@ export class RoomComponent implements OnInit
         // console.log('Usuários logados: ', this.listaU)               
     }
 
+    //habilitar input de mensagens
     msgHabIn()
     {                   
        let msgIn = document.getElementById('txt-mensagem') as HTMLInputElement
@@ -143,7 +148,28 @@ export class RoomComponent implements OnInit
             // this.socket.disconnect()
 
         })
-    }                          
+    }
+      
+    scroll()
+    {
+        //scrollTop: quantidade de rolagem que o usuário fez
+        //scrollHeight: tamanho total do contêiner
+
+        let priVez = true //verificar se é a primeira vez que rola a barra de rolagem
+        let scrollDiv = document.getElementById('div-scroll')
+
+        if(priVez)
+        {
+            scrollDiv.scrollTop = scrollDiv.scrollHeight
+            priVez = false
+        }
+        else if(scrollDiv.scrollTop + scrollDiv.scrollHeight === scrollDiv.scrollHeight)
+        {
+          scrollDiv.scrollTop = scrollDiv.scrollHeight
+        }
+
+        // let altPag = document.body.scrollHeight  -> pega a altura do container        
+    }
 
 }
 
