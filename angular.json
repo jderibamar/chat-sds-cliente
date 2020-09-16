@@ -26,7 +26,8 @@
             "styles": [
               "./node_modules/@angular/material/prebuilt-themes/indigo-pink.css",
               "src/styles.css",
-              "src/semantic-ui-css/semantic.min.css"
+              "src/semantic-ui-css/semantic.min.css",
+              "./node_modules/bootstrap/dist/css/bootstrap.min.css"
             ],
             "scripts": [
               "./node_modules/popper.js/dist/umd/popper.min.js",

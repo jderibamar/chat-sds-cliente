@@ -7,8 +7,8 @@
           </h1>          
         </div>    
                
-      </header>      
-        
+      </header>              
+
        <div class="content-container">
           <div class="active-users-panel" id="active-user-container" id="div-scroll">
             <h3 class="panel-title"> Usuários ativos :</h3>          
@@ -22,6 +22,11 @@
                                         
         </div> 
 
+        <!-- <div>          
+            <button id="callButton" (click)="call()"[disabled]="callBtnHabDes" >Call</button>
+            <button id="startButton" (click)="start()" [disabled]="startBtnHabDes"> Start </button>
+        </div> -->
+
         <div class="ui form" id="div-mensagem" >
           <input type="text" placeholder="Sua mensagem aqui" id="txt-mensagem" [(ngModel)]="messageText"
            (keyup.enter)="sendMessage()" [disabled]="msgHabDes" (keydown.enter)="scroll()">
@@ -33,28 +38,45 @@
             <h2 class="talk-info" id="talking-with-info">
               Vídeos ativos
             </h2>
-            <div class="video-container">
+            
+            <button id="bt-call" mat-raised-button color="warn" (click)="startCall()"> Call </button>
+
+            <div class="video-container" id="videos">
               <video autoplay class="remote-video" id="remote-video"></video>
-              <video autoplay muted class="local-video" id="local-video"></video>
+              <video autoplay muted class="local-video" id="local-video"> </video>
+
+              <!-- apenas para teste -->
+              <video id="video2" playsinline autoplay></video>
+              <video id="video3" playsinline autoplay></video>
+              
+              <!-- <canvas id="preview" style="display: none;"> </canvas>
+              <img id="play">
+              <div id="logger"></div> -->
+
+              <!-- <p *ngFor="let web of wecams" id="pcam">
+                  {{ web }}
+              </p> -->
             </div>
 
             <div class="ui form" id="div-usuario" >
                 <input type="text" placeholder="Seu nome aqui" id="txt-usuario" 
                   [(ngModel)]="user"  (keyup.enter)="msgHabIn()" autofocus>
-                  <div *ngIf="verUpre">
-                      <div >                      </div>    
-                  </div>
+                
                
                 <!-- <button id="bt-entrar" mat-raised-button color="primary" (click)="novoUsuario()"> Entrar </button> -->
                 <!-- <button id="bt-sair" mat-raised-button color="warn"> Sair </button> -->
             </div>
+
+            <div class="row call-btn-div">
+              <!-- <button  id="bt-cam"> WebCam </button> -->
+              <a > <img src="/assets/cam_desativada.PNG" id="cam_des" (click)="joinRoom()"> </a>
+              <a > <img src="/assets/mic_desativado.PNG" id="mic_des"> </a>
+          </div>
         </div>
       </div>    
 
     </div>
 </body>
-
-
 
 <!-- <video controls playsinline autoplay loop muted></video>
 

@@ -2,7 +2,6 @@ import { Component, OnInit, HostListener } from '@angular/core'
 import { FormGroup, FormControl, FormBuilder } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
 import { Router } from '@angular/router'
-import  { v4 }  from 'uuid'
 
 // import * as Handlebars from 'handlebars'
 // import { SimpleWebRTC } from 'simplewebrtc'
@@ -86,10 +85,10 @@ export class HomeComponent implements OnInit
     //     })
     // }
 
-    @HostListener('load') onload() 
-    {
+    // @HostListener('load') onload() 
+    // {
 
-    }
+    // }
     
     criarSala()
     {
@@ -103,6 +102,4 @@ export class HomeComponent implements OnInit
 
     }
 
-    
- 
 }

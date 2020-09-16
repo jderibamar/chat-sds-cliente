@@ -2,12 +2,11 @@
 // this.mywindow.document = jsdom('');
 // this.mywindow.this.mywindow = global.document.defaultView
 
+
 /// <reference types="@types/dom-mediacapture-record" />
 import { Component, OnInit, Input, Injectable, ViewChild, ElementRef } from '@angular/core'
 import { ActivatedRoute } from '@angular/router'
 import { ChatService } from '../../../services/chat.service'
-// import { CaptureAudioService } from 'src/app/services/capture-audio.service'
-// import { CaptureScreenService } from 'src/app/services/capture-screen.service'
 import * as io from 'socket.io-client'
 import { Observable } from 'rxjs'
 import { FormGroup, FormControl, Validators } from '@angular/forms'
@@ -16,6 +15,11 @@ import { async } from 'rxjs/internal/scheduler/async'
 import  * as Peer from  'simple-peer'
 import { analyzeAndValidateNgModules } from '@angular/compiler'
 import { global } from '@angular/compiler/src/util'
+
+interface MyWindow extends Window
+{
+    myWindowObj: object
+}
 
 const { RTCPeerConnection, RTCSessionDescription } = window
 
@@ -40,10 +44,9 @@ const { RTCPeerConnection, RTCSessionDescription } = window
   ]
 })
 
-
 @Injectable()
 export class RoomComponent implements OnInit
-{                    
+{         
     socket: SocketIOClient.Socket
     // video: HTMLVideoElement
     mediaConstraints = { audio: true, video: true }
@@ -52,8 +55,7 @@ export class RoomComponent implements OnInit
     usuario: String //guarda o usuário logado 
     messageText: String
     messageArray = []
-    listaU = []
-    wecams = []
+    listaU = [] 
     numUsers = 0 
     msgHabDes = true
     btEntHabDes = true
@@ -68,10 +70,27 @@ export class RoomComponent implements OnInit
     localVideo // = document.getElementById('local-video') as HTMLVideoElement
     mywindow = global
     
+    
     salaCriada: boolean
     
+    iceServers = 
+    {
+        'iceServers':
+         [
+            { url: 'stun:stun.l.google.com:19302' },    
+            { 
+                url: 'turn:numb.viagenie.ca',  
+                credential: 'muazkh',
+                username: 'webrtc@live.com'
+            }    
+      ]
+    }
+        
+    wecams = []
+
     id: string;
     gainNode: GainNode
+
   
     // @ViewChild('divScrool') divScrool: ElementRef
     
@@ -88,7 +107,6 @@ export class RoomComponent implements OnInit
       // this.chatService.newUserJoined().subscribe(data => this.messageArray.push(data))
       // this.chatService.userLeftRoom().subscribe(data => this.messageArray.push(data))
       this.chatService.newMessageReceived().subscribe(data => { this.messageArray.push( data.message ) })
-      this.chatService.videoRec().subscribe( data => { this.wecams.push(data)})    
     //   this.chatService.newUserJoined().subscribe(data => this.listaU.push(data))
     //   this.chatService.videoRec().subscribe(data => this.wecams.push(data) )      
     }
@@ -96,11 +114,11 @@ export class RoomComponent implements OnInit
     ngOnInit() 
     {
         // this.socket = io('http://localhost:3000') //Servidor
-        this.socket = io('https://sds-chat.herokuapp.com/')
+        // this.socket = io('https://sds-chat.herokuapp.com/')
         this.route.params.subscribe( (parametro: any) => 
         {
             console.log('Parâmetro funcionando nessa BAGAÇA: ', parametro.id )                
-        })         
+        }) 
 
         //   this.localVideo = document.getElementById ('local-video') as HTMLVideoElement
         //   navigator.mediaDevices.getUserMedia(this.mediaConstraints)
@@ -114,7 +132,9 @@ export class RoomComponent implements OnInit
         //     )
 
         // setInterval( () => { this.video() }, 35) 
-        this.joinRoom()            
+        this.joinRoom()
+        // this.setLocalStream()
+    
     }
   
     sendMessage()
@@ -126,56 +146,49 @@ export class RoomComponent implements OnInit
         this.estado = 'escondido'
     }
 
-    uSaiu()
-    {
-        this.socket.emit('')
-    }
-
-    joinRoom()
+    async joinRoom()
     {
         this.roomId = location.href.substr(27, location.href.length)        
-        this.socket.emit('join-room', this.roomId)
+        this.socket.emit('join-room', this.roomId )
         this.salaCriada = true
 
-        console.log('Sala criada ID: ', this.roomId)        
+        console.log('Sala ID: ', this.roomId)
 
         // SOCKET EVENT CALLBACKS
-                          
-            this.salaCriada = true
-                                  
-        this.socket.on('room_created', async (data) => 
+        this.socket.on('room_created', async () => 
         {
-            let totalNumU = data.utotal
-            console.log('Total de usuários na sala: ', totalNumU)
-            if(totalNumU == 1)
-            {
-                console.log('Requesting local stream')
-                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-                .then(this.gotStream)
-                .then(this.startCall)
-                .catch(e => console.log('getUserMedia() error: ', e)) 
-                
-                console.log(`Cliente ${ this.numUsers } entrou na sala`)
-                // console.log('ID da sala: ', data.roomId)
-            }
-            
-            if(totalNumU == 2)
-            {
-                console.log('Requesting local stream')
-                                        
-                navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-                .then(this.gotStream)
-                .then(this.startCall)
-                .then(this.pc2)
-                .catch(e => console.log('getUserMedia() error: ', e))
-
-                console.log(`Cliente ${ this.numUsers } entrou na sala`)
-            } 
-            
-            console.log('Número de usuários na sala: ', this.numUsers)
+            console.log('Socket event callback: room_created')
+            this.salaCriada = true
+            // await this.setLocalStream()                        
         })
-      
-    }   
+
+        this.socket.on('room_joined', async data => 
+        {
+            this.numUsers = data.utotal            
+            console.log(`Cliente ${ this.numUsers } entrou na sala:  ${ data.sala_id }`)
+            this.socket.emit('start_call', this.roomId) 
+
+            // await this.setLocalStream()     
+        })
+
+        this.socket.on('start_call', async () => 
+        {
+            console.log('Socket event callback: start_call -> aqui chegou')
+                    
+
+            if (this.salaCriada)
+            {               
+                // this.rtcPeerConnection = new RTCPeerConnection(this.iceServers)
+                // this.addLocalTracks(this.rtcPeerConnection)
+                // this.rtcPeerConnection.ontrack = this.setRemoteStream
+                // this.rtcPeerConnection.onicecandidate = this.sendIceCandidate
+                // await this.createOffer(this.rtcPeerConnection)
+
+                console.log('Aqui chegou: setRemoteDesc')
+            }
+        })                           
+    }
+    
     
     novoUsuario()
     {
@@ -210,7 +223,12 @@ export class RoomComponent implements OnInit
       //  document.querySelector('input').focus()
       //  console.log(document.activeElement.tagName)
        // let msgInFocus = (<HTMLInputElement>msgIn).focus()    
-    }     
+    }  
+
+    leave()
+    {
+        this.chatService.leaveRoom({ user: this.user, room: this.room})
+    }
      
     msgRecebida()
     {     
@@ -244,48 +262,37 @@ export class RoomComponent implements OnInit
 
         // let altPag = document.body.scrollHeight  -> pega a altura do container        
     }
-
-    //TRATATIVAS PARA GERENCIAMENTO DE VÍDEOS PELA CAM   
-    async setLocalStream()
-    {
+       
+    async compWebCam() //compartilhar webcam
+    {                         
         if(this.numUsers >= 1)
         {
-            console.log('Requesting local stream')
-            navigator.mediaDevices.getUserMedia({ audio: true, video: true })
-            .then(this.gotStream)
-            .then(this.startCall)
-            .catch(e => console.log('getUserMedia() error: ', e))                         
+            navigator.mediaDevices.getUserMedia( { video: true, audio: true })
+            .then(stream =>
+            {
+                let localVideo = document.getElementById('local-video') as HTMLVideoElement
+                localVideo.srcObject = stream
+                this.localStream = stream
+                console.log('STREAM: ', stream)                                                           
+            })
         }                    
         else
-            alert('Não existem usuírios na sala com quem compartilhar sua cam')         
-
-            // this.callBtnHabDes = false
-            // this.startBtnHabDes = true                         
-    }     
+            alert('Não existem usuírios na sala com quem compartilhar sua cam')           
+    }
                   
-    startCall() 
+    public async startCall() 
     {    
-        let mywindow = global
         let pc1Local, pc1Remote, pc2Local, pc2Remote, pc3Local, pc3Remote
         const offerOptions = { offerToReceiveAudio: 1, offerToReceiveVideo: 1 }
-        const iceServers = 
-        {
-        iceServers: 
-            [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
-            ]
-        }
                
-        console.log('Starting calls')          
-         
+        console.log('Starting calls')
+       
+        const stream =   navigator.mediaDevices.getUserMedia(this.mediaConstraints)
+       
         // const audioTracks = (await stream).getAudioTracks()
         // const videoTracks = (await stream).getVideoTracks();
-        const audioTracks = mywindow.localStream.getAudioTracks()
-        const videoTracks = mywindow.localStream.getVideoTracks()
+        const audioTracks = this.mywindow.localStream.getAudioTracks()
+        const videoTracks = this.mywindow.localStream.getVideoTracks()
 
         if (audioTracks.length > 0) {
             console.log(`Usando o dispositivo de áudio: ${audioTracks[0].label}`);
@@ -293,90 +300,21 @@ export class RoomComponent implements OnInit
         if (videoTracks.length > 0) {
             console.log(`Usando o dispositivo de vídeo: ${videoTracks[0].label}`);
         }
-                                 
-        // funções ICECandidate
-        let onAddIceCandidateError = function  onAddIceCandidateError(error)
-        {
-            console.log(`Failed to add ICE candidate: ${error.toString()}`);
-        }
-
-        let handleCandidate = function handleCandidate(candidate, dest, prefix, type) 
-        {
-            dest.addIceCandidate(candidate)
-                .then(console.log('Adicionado IceCandidate com sucesso!'), onAddIceCandidateError)
-            console.log(`${prefix}New ${type} ICE candidate: ${candidate ? candidate.candidate : '(null)'}`)
-        }
-
-        let gotRemoteStream1 = function  gotRemoteStream1(e) 
-        {                   
-            let videoRemoto = document.getElementById('remote-video') as HTMLVideoElement
-            if (videoRemoto.srcObject !== e.streams[0]) 
-            {
-                videoRemoto.srcObject = e.streams[0]
-                // document.getElementById('videos').appendChild(videoRemoto)
-    
-                console.log('pc1: received remote stream')
-            }
-        }        
-
-        let iceCallback1Local = function  iceCallback1Local(event) 
-        {
-            handleCandidate(event.candidate, pc1Remote, 'pc1: ', 'local');
-        }
-
-        let iceCallback1Remote = function iceCallback1Remote(event) 
-        {
-            handleCandidate(event.candidate, pc1Local, 'pc1: ', 'remote')
-        }        
-
         // Create an RTCPeerConnection via the polyfill.
-        // const servers = null
-        pc1Local  = new RTCPeerConnection(iceServers)
-        pc1Remote = new RTCPeerConnection(iceServers)
-        pc1Remote.ontrack = gotRemoteStream1
-        pc1Local.onicecandidate = iceCallback1Local
-        pc1Remote.onicecandidate = iceCallback1Remote
-        console.log('pc1: created local and remote peer connection objects')     
 
-        //funções externas a essa que precisei puxar e atribuir a variáveis pq fora não funcionava
+        // let servers = 
+        // {
+        //     'iceServers':
+        //      [
+        //         { url: 'stun:stun.l.google.com:19302' },    
+        //         { 
+        //             url: 'turn:numb.viagenie.ca',  
+        //             credential: 'muazkh',
+        //             username: 'webrtc@live.com'
+        //         }    
+        //   ]
+        // }
 
-        let erroSSDescCreate = function onCreateSessionDescriptionError(error) 
-        {
-            console.log(`Failed to create session description: ${error.toString()}`);
-        }
-
-        let gotDescription1Remote = function  gotDescription1Remote(desc) 
-        {
-            pc1Remote.setLocalDescription(desc);
-            console.log(`Answer from pc1Remote\n${desc.sdp}`);
-            pc1Local.setRemoteDescription(desc)
-        }               
-
-        let gotDescription1Local =  function gotDescription1Local(desc) 
-        {                                   
-            pc1Local.setLocalDescription(desc)
-            console.log(`Offer from pc1Local\n${desc.sdp}`)
-            pc1Remote.setRemoteDescription(desc);
-            // Since the 'remote' side has no media stream we need
-            // to pass in the right constraints in order for it to
-            // accept the incoming offer of audio and video.
-            pc1Remote.createAnswer().then(gotDescription1Remote, erroSSDescCreate)
-        }
- 
-        mywindow.localStream.getTracks().forEach(track => pc1Local.addTrack(track, mywindow.localStream))
-        console.log('Adding local stream to pc1Local')        
-        
-        pc1Local.createOffer(offerOptions)
-            .then(gotDescription1Local, erroSSDescCreate)
-                       
-    }              
-   
-    pc2()
-    {
-        let mywindow = global
-        let pc2Local, pc2Remote
-
-        const offerOptions = { offerToReceiveAudio: 1, offerToReceiveVideo: 1 }
         const iceServers = 
         {
         iceServers: 
@@ -389,26 +327,15 @@ export class RoomComponent implements OnInit
             ]
         }
 
-        let onAddIceCandidateError = function  onAddIceCandidateError(error)
+        //funções ICECandidate
+        let gotRemoteStream1 = function gotRemoteStream1(e) 
         {
-            console.log(`Failed to add ICE candidate: ${error.toString()}`);
-        }
-
-        let handleCandidate = function handleCandidate(candidate, dest, prefix, type) 
-        {
-            dest.addIceCandidate(candidate)
-                .then(console.log('Adicionado IceCandidate com sucesso!'), onAddIceCandidateError)
-            console.log(`${prefix}New ${type} ICE candidate: ${candidate ? candidate.candidate : '(null)'}`)
-        }
-
-        let iceCallback2Remote = function iceCallback2Remote(event) 
-        {
-            handleCandidate(event.candidate, pc2Local, 'pc2: ', 'remote')
-        } 
-        
-        let iceCallback2Local = function iceCallback2Local(event) 
-        {
-            handleCandidate(event.candidate, pc2Remote, 'pc2: ', 'local')
+            let videoRemoto = document.getElementById('remote-video') as HTMLVideoElement
+            if (videoRemoto.srcObject !== e.streams[0]) 
+            {
+                videoRemoto.srcObject = e.streams[0]
+                console.log('pc1: received remote stream')
+            }
         }
 
         let gotRemoteStream2 = function gotRemoteStream2(e) 
@@ -421,9 +348,107 @@ export class RoomComponent implements OnInit
             }
         }
 
-        let erroSSDescCreate = function onCreateSessionDescriptionError(error) 
+        //função acrescentada por mim, apenas copiei e colei e atualizei
+        let gotRemoteStream3 = function gotRemoteStream3(e) 
+        {
+            let video3 = document.getElementById('video3') as HTMLVideoElement
+            if (video3.srcObject !== e.streams[0]) 
+            {
+                video3.srcObject = e.streams[0];
+                console.log('pc3: recebeu stream remoto');
+            }
+        }
+       
+        let onAddIceCandidateError = function  onAddIceCandidateError(error)
+        {
+            console.log(`Failed to add ICE candidate: ${error.toString()}`);
+        }
+
+        let handleCandidate = function handleCandidate(candidate, dest, prefix, type) 
+        {
+            dest.addIceCandidate(candidate)
+                .then(console.log('Adicionado IceCandidate com sucesso!'), onAddIceCandidateError)
+            console.log(`${prefix}New ${type} ICE candidate: ${candidate ? candidate.candidate : '(null)'}`)
+        }
+
+
+        let iceCallback1Local = function  iceCallback1Local(event) 
+        {
+            handleCandidate(event.candidate, pc1Remote, 'pc1: ', 'local');
+        }
+
+        let iceCallback1Remote = function iceCallback1Remote(event) 
+        {
+            handleCandidate(event.candidate, pc1Local, 'pc1: ', 'remote')
+        }
+
+        let iceCallback2Local = function iceCallback2Local(event) 
+        {
+            handleCandidate(event.candidate, pc2Remote, 'pc2: ', 'local')
+        }
+     
+        let iceCallback2Remote = function iceCallback2Remote(event) 
+        {
+            handleCandidate(event.candidate, pc2Local, 'pc2: ', 'remote')
+        }
+
+        let iceCallback3Local = function iceCallback3Local(event)
+        {
+            handleCandidate(event.candidate, pc3Remote, 'pc3: ', 'local')
+        }
+
+        let iceCallback3Remote = function iceCallback3Remote(event)
+        {
+            handleCandidate(event.candidate, pc3Local, 'pc3: ', 'remote')
+        }
+
+        // const servers = null
+        pc1Local  = new RTCPeerConnection(iceServers)
+        pc1Remote = new RTCPeerConnection(iceServers)
+        pc1Remote.ontrack = gotRemoteStream1
+        pc1Local.onicecandidate = iceCallback1Local
+        pc1Remote.onicecandidate = iceCallback1Remote
+        console.log('pc1: created local and remote peer connection objects');
+
+        pc2Local = new RTCPeerConnection(iceServers);
+        pc2Remote = new RTCPeerConnection(iceServers);
+        pc2Remote.ontrack = gotRemoteStream2;
+        pc2Local.onicecandidate = iceCallback2Local;
+        pc2Remote.onicecandidate = iceCallback2Remote;
+        console.log('pc2: created local and remote peer connection objects')
+
+        //acrescentei para tratativas do PC3 remoto
+        pc3Local = new RTCPeerConnection(iceServers);
+        pc3Remote = new RTCPeerConnection(iceServers);
+        pc3Remote.ontrack = gotRemoteStream3;
+        pc3Local.onicecandidate = iceCallback3Local;
+        pc3Remote.onicecandidate = iceCallback3Remote;
+        console.log('pc3: criado objetos peer de conexão local e remoto')
+        //fim tratativa do PC3 remoto
+
+        //funções externas a essa que precisei puxar e atribuir a variáveis pq fora não funcionava
+
+        let gotDescription1Remote = function  gotDescription1Remote(desc) 
+        {
+            pc1Remote.setLocalDescription(desc);
+            console.log(`Answer from pc1Remote\n${desc.sdp}`);
+            pc1Local.setRemoteDescription(desc)
+        }
+
+        let onCreateSessionDescriptionError = function onCreateSessionDescriptionError(error) 
         {
             console.log(`Failed to create session description: ${error.toString()}`);
+        }
+
+        let gotDescription1Local =  function gotDescription1Local(desc) 
+        {                                   
+            pc1Local.setLocalDescription(desc)
+            console.log(`Offer from pc1Local\n${desc.sdp}`)
+            pc1Remote.setRemoteDescription(desc);
+            // Since the 'remote' side has no media stream we need
+            // to pass in the right constraints in order for it to
+            // accept the incoming offer of audio and video.
+            pc1Remote.createAnswer().then(gotDescription1Remote, onCreateSessionDescriptionError)
         }
 
         let gotDescription2Remote = function  gotDescription2Remote(desc)
@@ -448,30 +473,83 @@ export class RoomComponent implements OnInit
             // accept the incoming offer of audio and video.
             pc2Remote.createAnswer().then(gotDescription2Remote, erro)
         }
+        
+        let gotDesc3Remote = function  gotDescription3Remote(desc) 
+        {
+            pc3Remote.setLocalDescription(desc)
+            console.log(`Restposta do PC 3 remoto\n${desc.sdp}`)
+            pc3Local.setRemoteDescription(desc)
+        }
 
-        pc2Local = new RTCPeerConnection(iceServers)
-        pc2Remote = new RTCPeerConnection(iceServers)
-        pc2Remote.ontrack = gotRemoteStream2
-        pc2Local.onicecandidate = iceCallback2Local
-        pc2Remote.onicecandidate = iceCallback2Remote
-        console.log('pc2: created local and remote peer connection objects')
-                         
+        let gotDescription3Local = function gotDescription3Local(desc)
+        {
+            let erro = function onCreateSessionDescriptionError(error) 
+            {
+                console.log(`Failed to create session description: ${error.toString()}`);
+            }
+    
+            pc3Local.setLocalDescription(desc)
+            console.log(`Oferta do PC 3 Local\n${desc.sdp}`)
+            pc3Remote.setRemoteDescription(desc);
+            // Since the 'remote' side has no media stream we need
+            // to pass in the right constraints in order for it to
+            // accept the incoming offer of audio and video.
+            pc3Remote.createAnswer().then(gotDesc3Remote, erro);
+        }
 
-        mywindow.localStream.getTracks().forEach(track => pc2Local.addTrack(track, mywindow.localStream));
-            console.log('Adding local stream to pc2Local');
-            pc2Local.createOffer(offerOptions)
-                .then(gotDescription2Local, erroSSDescCreate) 
+        this.mywindow.localStream.getTracks().forEach(track => pc1Local.addTrack(track, this.mywindow.localStream))
+        console.log('Adding local stream to pc1Local')
+        pc1Local
+            .createOffer(offerOptions)
+            .then(gotDescription1Local, onCreateSessionDescriptionError);
 
-    }
+        this.mywindow.localStream.getTracks().forEach(track => pc2Local.addTrack(track, this.mywindow.localStream));
+        console.log('Adding local stream to pc2Local');
+        pc2Local.createOffer(offerOptions)
+            .then(gotDescription2Local, onCreateSessionDescriptionError)
+            
+
+        // //acrescentei para tratativa do PC3 remoto
+        this.mywindow.localStream.getTracks().forEach(track => pc3Local.addTrack(track, this.mywindow.localStream))
+        console.log('Adicionado stream local para o PC3 local')
+        pc3Local.createOffer(offerOptions)
+            .then(gotDescription3Local, onCreateSessionDescriptionError)
+
+        //fim da tratativa que acrescentei para o PC3   
+                       
+    }          
+    
+
+    //acrescentado por mim para o quarto PC   
 
     gotStream(stream) 
     {
         let videoLocal = document.getElementById('local-video') as HTMLVideoElement
         let mywindow = global
         console.log('Received local stream');
-        // videoLocal.srcObject = stream
-        mywindow.localStream = stream
+        videoLocal.srcObject = stream;
+        mywindow.localStream = stream               
+    }    
+    
 
-        console.log('STREAM: ', stream)
-    }         
+           
+    
+    //fim das minha adições neste trecho
+   
+
+    start() 
+    {
+        console.log('Requesting local stream')
+        navigator.mediaDevices
+            .getUserMedia({
+              audio: true,
+              video: true
+            })
+            .then(this.gotStream)
+            .catch(e => console.log('getUserMedia() error: ', e))
+
+            // this.callBtnHabDes = false
+            // this.startBtnHabDes = true  
+      }
+    
 }  

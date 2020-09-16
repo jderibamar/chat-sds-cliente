@@ -10,9 +10,7 @@ import { MatInputModule } from '@angular/material/input'
 import { MatFormFieldModule } from '@angular/material/form-field'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 
-import { CreateRoomComponent } from './pages/create-room/create-room.component';
-import { RoomComponent } from './pages/home/room/room.component';
-import { EnterRoomComponent } from './pages/enter-room/enter-room.component'
+import { RoomComponent } from './pages/home/room/room.component'
 import { AppComponent } from './app.component'
 import { HomeComponent } from './pages/home/home.component'
 
@@ -30,12 +28,11 @@ import { ChatService } from './services/chat.service'
 @NgModule({
   declarations: [
     AppComponent,
-    HomeComponent,
-    CreateRoomComponent,
-    RoomComponent,
-    EnterRoomComponent,    
+    HomeComponent,    
+    RoomComponent   
   ],
-  imports: [
+  imports:
+  [
     BrowserModule,    
     FormsModule,
     ReactiveFormsModule,

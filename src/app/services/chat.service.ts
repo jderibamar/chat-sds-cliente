@@ -38,13 +38,24 @@ export class ChatService
         return observable
     }
 
-    sendMessage(data) { this.socket.emit('new message', data) }
+    // sendMessage(data) { this.socket.emit('new message', data) }
 
     newMessageReceived() 
     {        
         let observable = new Observable<{ user: String, message: String }>(observer => 
         {
             this.socket.on('new message', (data) => { observer.next(data) })
+            return () => { this.socket.disconnect() }
+        })
+
+        return observable
+    }
+
+    videoRec() //recebe os vídeos enviados pelo servidor 
+    {        
+        let observable = new Observable<{ numU: number }>(observer => 
+        {
+            this.socket.on('room_created', (data) => { observer.next(data) })
             return () => { this.socket.disconnect() }
         })
 
